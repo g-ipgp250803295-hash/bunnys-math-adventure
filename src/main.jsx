@@ -131,7 +131,9 @@ function App() {
     if (station.id === "learn") setNoteIndex(0);
     if (station.id.startsWith("mission")) setModal({ title: "Mission Briefing! ✨", text: MISSIONS[station.id].instruction, kind: "briefing" });
     if (station.id === "reflection") setReflectionDraft(["", "", ""]);
-    if (station.id === "success") { beep("win"); }
+    if (station.id === "success") {
+      completeStation("success");
+    }
   }
   function completeStation(id) {
     setProgress(old => ({
@@ -140,7 +142,13 @@ function App() {
       unlocked: Math.max(old.unlocked, STATIONS.findIndex(s => s.id === id) + 1)
     }));
     beep("win");
-    setModal({ title: id === "mission3" ? "GOLD MEDAL UNLOCKED! 🥇" : "Station Complete! 🎉", text: id === "mission3" ? "Amazing work, Maths Master! You have conquered all three missions." : "Fantastic effort! Bunny is ready for the next part of the adventure.", kind: "complete" });
+    const finalStation = id === "success";
+    const medalStation = id === "mission3";
+    setModal({
+      title: finalStation ? "GOLD MEDAL AWARDED! 🥇" : medalStation ? "GOLD MEDAL UNLOCKED! 🥇" : "Station Complete! 🎉",
+      text: finalStation ? "Amazing! You have completed all six stations. Bunny's Math Adventure is 100% complete — you are an Order of Operations Champion!" : medalStation ? "Amazing work, Maths Master! You have conquered all three missions. Finish your reflection and visit the Success station to claim your medal." : "Fantastic effort! Bunny is ready for the next part of the adventure.",
+      kind: "complete"
+    });
   }
   function chooseAnswer(option) {
     if (feedback) return;
@@ -180,7 +188,9 @@ function App() {
     }
   }
 
-  const progressPercent = Math.round((progress.completed.length / STATIONS.length) * 100);
+  const completedCount = new Set(progress.completed).size;
+  const progressPercent = Math.round((completedCount / STATIONS.length) * 100);
+  const bunnyStep = Math.min(completedCount, STATIONS.length - 1);
 
   return <div className="app-shell">
     <header className="topbar">
@@ -235,9 +245,13 @@ function App() {
             <b>{station.name}</b><small>{isComplete(station.id)?"Completed ✓":locked?"Locked":station.short}</small>
           </button>
         })}
-        <div className="map-bunny" title="Bunny is cheering you on!">🐰<span>Hop hop!</span></div>
+        <div className="map-bunny" data-step={bunnyStep} title={`Bunny is at station ${bunnyStep + 1}`} aria-label={`Bunny has reached station ${bunnyStep + 1}`}>🐰<span>{bunnyStep === 5 ? "Hooray! 🎉" : "Hop hop!"}</span><i className="bunny-shadow" /></div>
         <span className="map-flower flower1">🌼</span><span className="map-flower flower2">🌷</span><span className="map-flower flower3">🍄</span><span className="map-flower flower4">🌻</span>
+        <span className="map-butterfly butterfly1" aria-hidden="true">🦋</span><span className="map-butterfly butterfly2" aria-hidden="true">🦋</span>
+        <span className="map-sparkle sparkle1" aria-hidden="true">✦</span><span className="map-sparkle sparkle2" aria-hidden="true">✧</span><span className="map-sparkle sparkle3" aria-hidden="true">★</span>
+        <span className="map-cloud cloud-map1" aria-hidden="true"></span><span className="map-cloud cloud-map2" aria-hidden="true"></span>
       </div>
+      <div className="map-collectibles"><div className="collectible-card"><span className="collectible-icon">⭐</span><span><b>{completedCount * 10} sparkle points</b><small>Earned by completing stations</small></span></div><div className="collectible-card"><span className="collectible-icon">🧩</span><span><b>{completedCount}/6 badges collected</b><small>Every station brings a new reward</small></span></div><div className="collectible-card"><span className="collectible-icon">🐾</span><span><b>Bunny's trail</b><small>Watch Bunny hop as you progress!</small></span></div></div>
       <div className="map-footer"><div className="tip-bubble">💡 <span><b>Bunny's tip:</b> Take your time and remember the order of operations!</span></div><button className="secondary-button" onClick={() => setPage("welcome")}><Home size={17}/> Welcome</button></div>
     </main>}
 
@@ -286,11 +300,11 @@ function App() {
 
     {page === "success" && <main className="success-page page-enter">
       <div className="confetti confetti1">✦</div><div className="confetti confetti2">✧</div><div className="confetti confetti3">★</div>
-      <div className="success-medal">🥇</div><span className="eyebrow"><PartyPopper size={16}/> FINAL STATION • SUCCESS</span>
+      <div className="success-medal">🥇</div><div className="success-orbit orbit-one">⭐</div><div className="success-orbit orbit-two">✨</div><div className="success-orbit orbit-three">🎊</div><span className="eyebrow"><PartyPopper size={16}/> FINAL STATION • SUCCESS</span>
       <h1>YOU DID IT, MATHS STAR!</h1><p className="success-lead">Bunny is so proud of you. You explored, practised, solved tricky problems, and reflected on your learning!</p>
       <div className="medal-card"><Trophy size={30}/><div><b>GOLD MEDAL AWARDED</b><span>Order of Operations Champion</span></div><Sparkles size={25}/></div>
-      <div className="success-stats"><div><b>15</b><span>Mission questions</span></div><div><b>6/6</b><span>Stations completed</span></div><div><b>∞</b><span>Reasons to be proud</span></div></div>
-      <button className="primary-button big" onClick={()=>setModal({title:"Congratulations! 🎉",text:"You are an Order of Operations Champion! Keep practising, stay curious, and remember: great mathematicians take one step at a time.",kind:"complete"})}>Celebrate again <Sparkles size={19}/></button>
+      <div className="success-stats"><div><b>15</b><span>Mission questions</span></div><div><b>{completedCount}/6</b><span>Stations completed</span></div><div><b>{progressPercent}%</b><span>Adventure complete</span></div></div>
+      <button className="primary-button big" onClick={()=>{ if (!isComplete("success")) completeStation("success"); else setModal({title:"Congratulations! 🎉",text:"You are an Order of Operations Champion! All six stations are complete and your gold medal is yours. Keep practising and stay curious!",kind:"complete"}); }}> {isComplete("success") ? "Celebrate again" : "Claim my gold medal!"} <Sparkles size={19}/></button>
       <button className="text-button" onClick={goHome}><Home size={16}/> Return to adventure map</button>
     </main>}
 
@@ -303,5 +317,3 @@ function App() {
 }
 
 createRoot(document.getElementById("root")).render(<React.StrictMode><App /></React.StrictMode>);
-
-
